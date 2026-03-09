@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Reminders">
+  <title>My Reminders</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f2f2f7;
+      color: #1c1c1e;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    header {
+      background: #fff;
+      padding: 20px 16px 12px;
+      border-bottom: 1px solid #e5e5ea;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .add-section {
+      background: #fff;
+      margin: 16px;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid #c7c7cc;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #007aff;
+    }
+
+    .date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .date-row label {
+      font-size: 14px;
+      color: #6c6c70;
+      white-space: nowrap;
+    }
+
+    input[type="date"] {
+      border: 1px solid #c7c7cc;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      flex: 1;
+    }
+
+    .btn-add {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      background: #007aff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-add:active {
+      background: #0051a8;
+    }
+
+    .btn-mic {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      background: #f2f2f7;
+      color: #007aff;
+      border: 1px solid #c7c7cc;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-mic.listening {
+      background: #fff0f0;
+      border-color: #ff3b30;
+      color: #ff3b30;
+    }
+
+    .list-section {
+      margin: 0 16px;
+    }
+
+    .section-header {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6c6c70;
+      padding: 16px 4px 6px;
+    }
+
+    .section-header.overdue {
+      color: #ff3b30;
+    }
+
+    .reminder-item {
+      background: #fff;
+      border-radius: 10px;
+      padding: 14px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .reminder-item input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      cursor: pointer;
+      accent-color: #007aff;
+    }
+
+    .reminder-text {
+      font-size: 16px;
+      line-height: 1.4;
+      flex: 1;
+    }
+
+    .reminder-date {
+      font-size: 12px;
+      color: #6c6c70;
+      margin-top: 3px;
+    }
+
+    .reminder-date.overdue {
+      color: #ff3b30;
+      font-weight: 600;
+    }
+
+    .completed-item .reminder-text {
+      text-decoration: line-through;
+      color: #8e8e93;
+    }
+
+    .btn-toggle-completed {
+      display: block;
+      width: calc(100% - 32px);
+      margin: 16px 16px 0;
+      padding: 12px;
+      background: none;
+      border: 1px solid #c7c7cc;
+      border-radius: 10px;
+      font-size: 15px;
+      color: #007aff;
+      cursor: pointer;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #8e8e93;
+      padding: 40px 16px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>My Reminders</h1>
+  </header>
+
+  <div class="add-section">
+    <textarea id="reminder-input" placeholder="What do you need to remember?" autocomplete="off" autocorrect="on" autocapitalize="sentences"></textarea>
+    <button class="btn-mic" id="mic-btn" type="button" onclick="startVoice()" data-listening="false">Speak</button>
+    <div class="date-row">
+      <label for="due-date">Due:</label>
+      <input type="date" id="due-date">
+    </div>
+    <button class="btn-add" onclick="addReminder()">Add Reminder</button>
+  </div>
+
+  <div class="list-section" id="list-section">
+  </div>
+
+  <button class="btn-toggle-completed" id="toggle-completed-btn" onclick="toggleCompleted()" style="display:none">
+    Show completed (0)
+  </button>
+
+  <div class="list-section" id="completed-section" style="display:none">
+  </div>
+
+  <script>
+    // \u2500\u2500 Data layer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+    function loadReminders() {
+      return JSON.parse(localStorage.getItem('reminders') || '[]');
+    }
+
+    function saveReminders(reminders) {
+      localStorage.setItem('reminders', JSON.stringify(reminders));
+    }
+
+    function addReminder() {
+      const text = document.getElementById('reminder-input').value.trim();
+      if (!text) return;
+
+      const dueDate = document.getElementById('due-date').value || null;
+      const reminders = loadReminders();
+
+      reminders.push({
+        id: crypto.randomUUID(),
+        text,
+        dueDate,
+        done: false,
+        createdAt: new Date().toISOString()
+      });
+
+      saveReminders(reminders);
+      document.getElementById('reminder-input').value = '';
+      document.getElementById('due-date').value = '';
+      renderAll();
+    }
+
+    function setDone(id, value) {
+      const reminders = loadReminders();
+      const item = reminders.find(r => r.id === id);
+      if (item) item.done = value;
+      saveReminders(reminders);
+      renderAll();
+    }
+
+    // \u2500\u2500 Rendering \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+    // -- Voice input --
+
+    function startVoice() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert('Voice input is not supported in this browser. Try Safari on iOS 14.5+.');
+        return;
+      }
+
+      const btn = document.getElementById('mic-btn');
+      if (btn.dataset.listening === 'true') return;
+
+      const recognition = new SR();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+
+      btn.dataset.listening = 'true';
+      btn.classList.add('listening');
+      btn.textContent = 'Listening...';
+
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        const ta = document.getElementById('reminder-input');
+        ta.value = ta.value ? ta.value + ' ' + transcript : transcript;
+      };
+
+      recognition.onend = function() {
+        btn.dataset.listening = 'false';
+        btn.classList.remove('listening');
+        btn.textContent = 'Speak';
+      };
+
+      recognition.onerror = function(event) {
+        btn.dataset.listening = 'false';
+        btn.classList.remove('listening');
+        btn.textContent = 'Speak';
+        if (event.error !== 'no-speech') {
+          alert('Microphone error: ' + event.error);
+        }
+      };
+    }
+
+    let showCompleted = false;
+
+    function toggleCompleted() {
+      showCompleted = !showCompleted;
+      renderAll();
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return null;
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function isOverdue(dateStr) {
+      if (!dateStr) return false;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d) < today;
+    }
+
+    function isToday(dateStr) {
+      if (!dateStr) return false;
+      const today = new Date();
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return y === today.getFullYear() && m === today.getMonth() + 1 && d === today.getDate();
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function reminderHTML(r, isDone) {
+      const overdueClass = isOverdue(r.dueDate) && !isDone ? 'overdue' : '';
+      const datePrefix = isOverdue(r.dueDate) && !isDone ? 'Overdue \u00b7 '
+                       : isToday(r.dueDate) ? 'Today \u00b7 '
+                       : '';
+      const dateLabel = r.dueDate
+        ? `<div class="reminder-date ${overdueClass}">${datePrefix}${formatDate(r.dueDate)}</div>`
+        : '';
+      const onchange = isDone ? `setDone('${r.id}', false)` : `setDone('${r.id}', true)`;
+
+      return `
+        <div class="reminder-item ${isDone ? 'completed-item' : ''}">
+          <input type="checkbox" ${isDone ? 'checked' : ''} onchange="${onchange}">
+          <div>
+            <div class="reminder-text">${escapeHtml(r.text)}</div>
+            ${dateLabel}
+          </div>
+        </div>`;
+    }
+
+    function renderAll() {
+      const reminders = loadReminders();
+      const active = reminders.filter(r => !r.done);
+      const done = reminders.filter(r => r.done);
+
+      // Sort active: overdue first, then by date ascending, then no-date
+      active.sort((a, b) => {
+        const aOver = isOverdue(a.dueDate);
+        const bOver = isOverdue(b.dueDate);
+        if (aOver && !bOver) return -1;
+        if (!aOver && bOver) return 1;
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+      });
+
+      const listEl = document.getElementById('list-section');
+
+      if (active.length === 0) {
+        listEl.innerHTML = '<p class="empty-state">Nothing to do \u2014 you\'re all caught up!</p>';
+      } else {
+        const overdue  = active.filter(r => isOverdue(r.dueDate));
+        const today    = active.filter(r => isToday(r.dueDate));
+        const upcoming = active.filter(r => r.dueDate && !isOverdue(r.dueDate) && !isToday(r.dueDate));
+        const noDate   = active.filter(r => !r.dueDate);
+
+        let html = '';
+        if (overdue.length)  html += `<div class="section-header overdue">Overdue</div>` + overdue.map(r => reminderHTML(r, false)).join('');
+        if (today.length)    html += `<div class="section-header">Today</div>` + today.map(r => reminderHTML(r, false)).join('');
+        if (upcoming.length) html += `<div class="section-header">Upcoming</div>` + upcoming.map(r => reminderHTML(r, false)).join('');
+        if (noDate.length)   html += `<div class="section-header">No Date</div>` + noDate.map(r => reminderHTML(r, false)).join('');
+        listEl.innerHTML = html;
+      }
+
+      // Completed toggle button
+      const toggleBtn = document.getElementById('toggle-completed-btn');
+      if (done.length > 0) {
+        toggleBtn.style.display = 'block';
+        toggleBtn.textContent = showCompleted
+          ? `Hide completed (${done.length})`
+          : `Show completed (${done.length})`;
+      } else {
+        toggleBtn.style.display = 'none';
+      }
+
+      // Completed section
+      const completedEl = document.getElementById('completed-section');
+      if (showCompleted && done.length > 0) {
+        completedEl.style.display = 'block';
+        completedEl.innerHTML = `<div class="section-header">Completed</div>` + done.map(r => reminderHTML(r, true)).join('');
+      } else {
+        completedEl.style.display = 'none';
+      }
+    }
+
+    // Enter key (without Shift) submits the reminder
+    document.getElementById('reminder-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        addReminder();
+      }
+    });
+
+    // Initial render on page load
+    renderAll();
+  </script>
+
+</body>
+</html>
